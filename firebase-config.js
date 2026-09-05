@@ -1,9 +1,10 @@
-// A Firebase Console > Project settings > Your apps > Web app alatt kapott értékek.
+// Firebase Console > Project settings > Your apps > Web app
 export const firebaseConfig = {
-  apiKey: "PASTE_FIREBASE_API_KEY_HERE",
-  authDomain: "PASTE_PROJECT_ID_HERE.firebaseapp.com",
-  projectId: "PASTE_PROJECT_ID_HERE",
-  storageBucket: "PASTE_PROJECT_ID_HERE.firebasestorage.app",
-  messagingSenderId: "PASTE_MESSAGING_SENDER_ID_HERE",
-  appId: "PASTE_APP_ID_HERE",
+  apiKey: "AIzaSyDKlv1xqbqPl8pAFgs2z6fBTFydM5NIEzE",
+  authDomain: "viz2026.firebaseapp.com",
+  projectId: "viz2026",
+  storageBucket: "viz2026.firebasestorage.app",
+  messagingSenderId: "336293717306",
+  appId: "1:336293717306:web:90640b4132c6c4a88a5c03",
+  measurementId: "G-89VBJVKH04",
 };
