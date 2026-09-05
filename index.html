@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="hu">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Interaktív közösségi tanulói tér adatvizualizációhoz." />
+    <title>VizKözösség — Kollektív asszociációk</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="learning-space">
+      <header class="topbar">
+        <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div>
+          <p class="eyebrow">VIZKÖZÖSSÉG · 01</p>
+          <h1>Kollektív asszociációk</h1>
+        </div>
+        <div class="live-badge"><span class="radio-icon" aria-hidden="true"></span> ÉLŐ KÖZÖS TÉR</div>
+      </header>
+
+      <section class="workspace">
+        <aside class="response-panel">
+          <div class="panel-intro">
+            <span class="step">01 / szófelhő</span>
+            <h2>Mi jut eszedbe a tárgy nevéről?</h2>
+            <p>Írj be három különböző kifejezést a „Vizualizáció és vizuális analitika” tárgyhoz.</p>
+          </div>
+
+          <form id="terms-form" class="terms-form">
+            <label><span>01</span><input name="term-1" placeholder="pl. mintázat" minlength="2" maxlength="40" required aria-label="1. kifejezés" /></label>
+            <label><span>02</span><input name="term-2" placeholder="pl. felfedezés" minlength="2" maxlength="40" required aria-label="2. kifejezés" /></label>
+            <label><span>03</span><input name="term-3" placeholder="pl. történet" minlength="2" maxlength="40" required aria-label="3. kifejezés" /></label>
+            <button id="submit-button" class="submit-button" type="submit"><span>Beküldöm a közös térbe</span><span aria-hidden="true">→</span></button>
+          </form>
+
+          <div id="submitted-state" class="submitted-state" hidden>
+            <span class="check-ring" aria-hidden="true">✓</span>
+            <h3>A válaszod megérkezett</h3>
+            <p>A szófelhő automatikusan követi a csoport új asszociációit.</p>
+          </div>
+          <p id="error-message" class="error-message" role="alert" hidden></p>
+
+          <div class="privacy-note">
+            <span>Névtelen részvétel</span>
+            <p>Csak a három kifejezést tároljuk. Név vagy e-mail-cím nem kerül a válasz mellé.</p>
+          </div>
+        </aside>
+
+        <section class="cloud-panel">
+          <div class="cloud-heading">
+            <div><p class="eyebrow">A CSOPORT KÖZÖS KÉPE</p><h2>Asszociációs szófelhő</h2></div>
+            <button id="refresh-button" class="icon-button" type="button" aria-label="Szófelhő frissítése">↻</button>
+          </div>
+
+          <div id="cloud-canvas" class="cloud-canvas" aria-label="Kollektív asszociációs szófelhő">
+            <div class="empty-cloud"><span class="cloud-icon" aria-hidden="true">☁</span><strong>A közös tér még üres</strong><span>Az első három kifejezés itt válik láthatóvá.</span></div>
+          </div>
+
+          <footer class="cloud-stats">
+            <div><span aria-hidden="true">♟</span><strong id="participant-count">0</strong><span>résztvevő</span></div>
+            <div><strong id="association-count">0</strong><span>beküldött kifejezés</span></div>
+            <div class="update-status"><i></i> Valós idejű Firebase-kapcsolat</div>
+          </footer>
+        </section>
+      </section>
+      <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    </main>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
