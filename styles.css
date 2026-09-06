@@ -42,7 +42,10 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .icon-button.spinning { animation: spin .45s; }
 .cloud-canvas { position: relative; min-height: 360px; overflow: hidden; isolation: isolate; }
 .cloud-canvas::before { content: ""; position: absolute; inset: 10% 8%; border-radius: 50%; background: radial-gradient(circle,rgba(30,64,142,.3),transparent 65%); filter: blur(10px); z-index: -1; }
-.cloud-word { position: absolute; display: flex; gap: .25em; align-items: flex-start; white-space: nowrap; overflow: hidden; font-weight: 800; line-height: 1; letter-spacing: -.055em; animation: word-in .45s both; transition: transform .2s,filter .2s; cursor: default; }
+.bulb-guide { position: absolute; z-index: 0; overflow: visible; pointer-events: none; }
+.bulb-guide path { fill: rgba(94,234,212,.025); stroke: rgba(147,197,253,.26); stroke-width: 1.35; vector-effect: non-scaling-stroke; }
+.bulb-guide .bulb-detail { fill: none; stroke: rgba(255,212,59,.28); stroke-width: 1; }
+.cloud-word { position: absolute; z-index: 1; display: flex; gap: .25em; align-items: flex-start; white-space: nowrap; overflow: hidden; font-weight: 800; line-height: 1; letter-spacing: -.055em; animation: word-in .45s both; transition: transform .2s,filter .2s; cursor: default; }
 .cloud-word:hover { transform: scale(1.08); filter: brightness(1.17); z-index: 2; }
 .cloud-word small { font-size: .23em; line-height: 1; opacity: .7; letter-spacing: 0; }
 .empty-cloud { height: 100%; min-height: 360px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #7187b4; gap: .65rem; text-align: center; }
