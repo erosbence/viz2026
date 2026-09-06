@@ -19,9 +19,11 @@ const participantCount = document.querySelector("#participant-count");
 const associationCount = document.querySelector("#association-count");
 const refreshButton = document.querySelector("#refresh-button");
 const toast = document.querySelector("#toast");
+const wordTooltip = document.querySelector("#word-tooltip");
 
 const palette = ["#ffd43b", "#5eead4", "#fda4af", "#93c5fd", "#f8fafc", "#c4b5fd"];
 const MAX_VISIBLE_WORDS = 55;
+const MAX_PLACEMENT_ATTEMPTS = 420;
 let latestWords = [];
 let toastTimer;
 
@@ -134,29 +136,38 @@ function pseudoRandom(value) {
 
 function measureWord(word, fontSize, measure) {
   measure.font = `800 ${fontSize}px Arial`;
-  const labelWidth = measure.measureText(word.text).width;
-  const countWidth = String(word.count).length * fontSize * 0.14;
   return {
-    width: labelWidth + fontSize * 0.25 + countWidth,
-    height: fontSize * 1.08,
+    width: measure.measureText(word.text).width * 0.97,
+    height: fontSize,
   };
 }
 
 function findPosition(word, wordIndex, fontSize, boxes, geometry, measure) {
   const dimensions = measureWord(word, fontSize, measure);
   const seed = Math.abs(hashWord(word.text)) + wordIndex * 97;
+  const verticalAnchors = [0.34, 0.27, 0.42, 0.2, 0.5, 0.57, 0.12, 0.64, 0.73, 0.82, 0.91];
+  const preferredVertical = verticalAnchors[wordIndex % verticalAnchors.length];
+  const seedAngle = pseudoRandom(seed) * Math.PI * 2;
 
-  for (let attempt = 0; attempt < 1400; attempt += 1) {
-    const vertical = 0.035 + pseudoRandom(seed + attempt * 1.6180339) * 0.94;
+  for (let attempt = 0; attempt < MAX_PLACEMENT_ATTEMPTS; attempt += 1) {
+    const isAnchorSearch = attempt < 50;
+    const localAttempt = isAnchorSearch ? attempt : attempt - 50;
+    const progress = isAnchorSearch ? Math.sqrt(localAttempt / 49) : 1;
+    const angle = seedAngle + localAttempt * 2.3999632;
+    const vertical = isAnchorSearch
+      ? Math.max(0.035, Math.min(0.975, preferredVertical + Math.sin(angle) * progress * 0.22))
+      : 0.035 + pseudoRandom(seed + localAttempt * 1.6180339) * 0.94;
     const halfWidth = bulbHalfWidth(vertical) * geometry.width;
-    const horizontal = (pseudoRandom(seed * 0.37 + attempt * 2.4142136) * 2 - 1) * halfWidth;
+    const horizontal = isAnchorSearch
+      ? Math.cos(angle) * progress * halfWidth * 1.45
+      : (pseudoRandom(seed * 0.37 + localAttempt * 2.4142136) * 2 - 1) * halfWidth;
     const centerX = geometry.centerX + horizontal;
     const centerY = geometry.top + vertical * geometry.height;
     const box = {
-      left: centerX - dimensions.width / 2 - 3,
-      right: centerX + dimensions.width / 2 + 3,
-      top: centerY - dimensions.height / 2 - 2,
-      bottom: centerY + dimensions.height / 2 + 2,
+      left: centerX - dimensions.width / 2 - 1,
+      right: centerX + dimensions.width / 2 + 1,
+      top: centerY - dimensions.height / 2 - 0.6,
+      bottom: centerY + dimensions.height / 2 + 0.6,
     };
 
     if (!boxInsideBulb(box, geometry) || boxesCollide(box, boxes)) continue;
@@ -168,7 +179,7 @@ function findPosition(word, wordIndex, fontSize, boxes, geometry, measure) {
 
 function calculateIdealSizes(words, geometry) {
   const maxCount = Math.max(...words.map((word) => word.count));
-  const usableAreaPerWord = (geometry.width * geometry.height * 0.43) / Math.max(1, words.length);
+  const usableAreaPerWord = (geometry.width * geometry.height * 0.52) / Math.max(1, words.length);
   const densitySize = Math.sqrt(usableAreaPerWord);
   const minimum = Math.max(10, Math.min(24, densitySize * 0.42));
   const maximum = Math.max(minimum + 5, Math.min(72, densitySize * 1.12));
@@ -182,7 +193,7 @@ function calculateIdealSizes(words, geometry) {
 function createLayout(words, geometry, measure) {
   const idealSizes = calculateIdealSizes(words, geometry);
 
-  for (let globalScale = 1; globalScale >= 0.34; globalScale -= 0.08) {
+  for (let globalScale = 1; globalScale >= 0.34; globalScale -= 0.05) {
     const boxes = [];
     const placements = [];
     let complete = true;
@@ -241,7 +252,7 @@ function createLayout(words, geometry, measure) {
   });
 }
 
-function appendBulbGuide(geometry) {
+function appendBulbGuide(geometry, wordCount) {
   const namespace = "http://www.w3.org/2000/svg";
   const guide = document.createElementNS(namespace, "svg");
   guide.classList.add("bulb-guide");
@@ -251,11 +262,28 @@ function appendBulbGuide(geometry) {
   guide.style.top = `${geometry.top}px`;
   guide.style.width = `${geometry.width}px`;
   guide.style.height = `${geometry.height}px`;
+  guide.style.opacity = wordCount >= 18 ? "0.42" : "1";
   guide.innerHTML = `
     <path d="M50 3C24 3 6 21 6 43c0 18 10 27 23 39 5 5 7 10 7 15h28c0-5 2-10 7-15 13-12 23-21 23-39C94 21 76 3 50 3Z" />
     <path d="M34 96h32v23c0 7-7 11-16 11s-16-4-16-11V96Z" />
     <path class="bulb-detail" d="M35 105h30M35 113h30M38 121h24" />`;
   cloudCanvas.append(guide);
+}
+
+function hideWordTooltip() {
+  wordTooltip.hidden = true;
+}
+
+function showWordTooltip(word, clientX, clientY) {
+  wordTooltip.textContent = `${word.count} beküldés`;
+  wordTooltip.hidden = false;
+
+  const tooltipBox = wordTooltip.getBoundingClientRect();
+  const left = Math.max(8, Math.min(window.innerWidth - tooltipBox.width - 8, clientX + 12));
+  let top = clientY + 12;
+  if (top + tooltipBox.height > window.innerHeight - 8) top = clientY - tooltipBox.height - 12;
+  wordTooltip.style.left = `${left}px`;
+  wordTooltip.style.top = `${Math.max(8, top)}px`;
 }
 
 function appendWord(word, placement) {
@@ -265,16 +293,24 @@ function appendWord(word, placement) {
   element.style.top = `${placement.y}px`;
   element.style.fontSize = `${placement.fontSize}px`;
   element.style.color = palette[Math.abs(hashWord(word.text)) % palette.length];
-  element.title = `${word.count} beküldés`;
+  element.tabIndex = 0;
+  element.setAttribute("aria-label", `${word.text}: ${word.count} beküldés`);
   element.append(document.createTextNode(word.text));
-  const count = document.createElement("small");
-  count.textContent = String(word.count);
-  element.append(count);
+  element.addEventListener("pointerenter", (event) => showWordTooltip(word, event.clientX, event.clientY));
+  element.addEventListener("pointermove", (event) => showWordTooltip(word, event.clientX, event.clientY));
+  element.addEventListener("pointerleave", hideWordTooltip);
+  element.addEventListener("pointercancel", hideWordTooltip);
+  element.addEventListener("focus", () => {
+    const box = element.getBoundingClientRect();
+    showWordTooltip(word, box.left + box.width / 2, box.top + box.height / 2);
+  });
+  element.addEventListener("blur", hideWordTooltip);
   cloudCanvas.append(element);
 }
 
 function renderCloud(words) {
   latestWords = words;
+  hideWordTooltip();
   cloudCanvas.replaceChildren();
   if (!words.length) {
     const empty = document.createElement("div");
@@ -289,7 +325,7 @@ function renderCloud(words) {
   const measure = document.createElement("canvas").getContext("2d");
   const placements = createLayout(visibleWords, geometry, measure);
 
-  appendBulbGuide(geometry);
+  appendBulbGuide(geometry, visibleWords.length);
   if (placements) {
     visibleWords.forEach((word, index) => appendWord(word, placements[index]));
   }
