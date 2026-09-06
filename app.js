@@ -21,7 +21,7 @@ const refreshButton = document.querySelector("#refresh-button");
 const toast = document.querySelector("#toast");
 
 const palette = ["#ffd43b", "#5eead4", "#fda4af", "#93c5fd", "#f8fafc", "#c4b5fd"];
-const MAX_VISIBLE_WORDS = 45;
+const MAX_VISIBLE_WORDS = 55;
 let latestWords = [];
 let toastTimer;
 
