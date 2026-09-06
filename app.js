@@ -72,52 +72,24 @@ function aggregate(snapshot) {
   return [...frequencies.values()].sort((a, b) => b.count - a.count || a.text.localeCompare(b.text, "hu"));
 }
 
-function createBulbGeometry(width, height) {
-  const availableWidth = Math.max(120, width - 20);
-  const availableHeight = Math.max(180, height - 16);
-  const bulbHeight = Math.min(availableHeight, availableWidth * 1.32);
-  const bulbWidth = Math.min(availableWidth, bulbHeight / 1.32);
+function createCloudGeometry(width, height) {
+  const horizontalPadding = Math.max(10, width * 0.025);
+  const verticalPadding = Math.max(8, height * 0.025);
   return {
-    width: bulbWidth,
-    height: bulbHeight,
-    left: (width - bulbWidth) / 2,
-    top: (height - bulbHeight) / 2,
+    width: Math.max(120, width - horizontalPadding * 2),
+    height: Math.max(180, height - verticalPadding * 2),
+    left: horizontalPadding,
+    top: verticalPadding,
     centerX: width / 2,
+    centerY: height / 2,
   };
 }
 
-function bulbHalfWidth(verticalPosition) {
-  const t = Math.max(0, Math.min(1, verticalPosition));
-  const ellipseDistance = (t - 0.3) / 0.3;
-  const head = Math.abs(ellipseDistance) <= 1
-    ? 0.48 * Math.sqrt(1 - ellipseDistance ** 2)
-    : 0;
-  const taper = t >= 0.47 && t <= 0.75
-    ? 0.34 + ((t - 0.47) / 0.28) * (0.2 - 0.34)
-    : 0;
-  const socket = t >= 0.72 && t <= 0.94 ? 0.205 : 0;
-  const base = t > 0.94 ? 0.08 + 0.125 * Math.sqrt(Math.max(0, 1 - ((t - 0.94) / 0.06) ** 2)) : 0;
-  return Math.max(head, taper, socket, base);
-}
-
-function pointInsideBulb(x, y, geometry) {
-  const t = (y - geometry.top) / geometry.height;
-  if (t < 0 || t > 1) return false;
-  const horizontalPosition = Math.abs(x - geometry.centerX) / geometry.width;
-  return horizontalPosition <= bulbHalfWidth(t);
-}
-
-function boxInsideBulb(box, geometry) {
-  const inset = 1;
-  const points = [
-    [box.left + inset, box.top + inset],
-    [box.right - inset, box.top + inset],
-    [box.left + inset, box.bottom - inset],
-    [box.right - inset, box.bottom - inset],
-    [(box.left + box.right) / 2, box.top + inset],
-    [(box.left + box.right) / 2, box.bottom - inset],
-  ];
-  return points.every(([x, y]) => pointInsideBulb(x, y, geometry));
+function boxInsideCloud(box, geometry) {
+  return box.left >= geometry.left &&
+    box.right <= geometry.left + geometry.width &&
+    box.top >= geometry.top &&
+    box.bottom <= geometry.top + geometry.height;
 }
 
 function boxesCollide(box, boxes) {
@@ -134,35 +106,35 @@ function pseudoRandom(value) {
   return result - Math.floor(result);
 }
 
-function measureWord(word, fontSize, measure) {
+function getWordRotation(word, wordIndex) {
+  if (wordIndex < 3) return 0;
+  return Math.abs(hashWord(word.text)) % 6 === 0 ? -90 : 0;
+}
+
+function measureWord(word, fontSize, measure, rotation = 0) {
   measure.font = `800 ${fontSize}px Arial`;
+  const textWidth = measure.measureText(word.text).width * 0.97;
   return {
-    width: measure.measureText(word.text).width * 0.97,
-    height: fontSize,
+    width: rotation === 0 ? textWidth : fontSize,
+    height: rotation === 0 ? fontSize : textWidth,
+    elementWidth: textWidth,
+    elementHeight: fontSize,
   };
 }
 
 function findPosition(word, wordIndex, fontSize, boxes, geometry, measure) {
-  const dimensions = measureWord(word, fontSize, measure);
+  const rotation = getWordRotation(word, wordIndex);
+  const dimensions = measureWord(word, fontSize, measure, rotation);
   const seed = Math.abs(hashWord(word.text)) + wordIndex * 97;
-  const verticalAnchors = [0.34, 0.27, 0.42, 0.2, 0.5, 0.57, 0.12, 0.64, 0.73, 0.82, 0.91];
-  const preferredVertical = verticalAnchors[wordIndex % verticalAnchors.length];
   const seedAngle = pseudoRandom(seed) * Math.PI * 2;
 
   for (let attempt = 0; attempt < MAX_PLACEMENT_ATTEMPTS; attempt += 1) {
-    const isAnchorSearch = attempt < 50;
-    const localAttempt = isAnchorSearch ? attempt : attempt - 50;
-    const progress = isAnchorSearch ? Math.sqrt(localAttempt / 49) : 1;
-    const angle = seedAngle + localAttempt * 2.3999632;
-    const vertical = isAnchorSearch
-      ? Math.max(0.035, Math.min(0.975, preferredVertical + Math.sin(angle) * progress * 0.22))
-      : 0.035 + pseudoRandom(seed + localAttempt * 1.6180339) * 0.94;
-    const halfWidth = bulbHalfWidth(vertical) * geometry.width;
-    const horizontal = isAnchorSearch
-      ? Math.cos(angle) * progress * halfWidth * 1.45
-      : (pseudoRandom(seed * 0.37 + localAttempt * 2.4142136) * 2 - 1) * halfWidth;
-    const centerX = geometry.centerX + horizontal;
-    const centerY = geometry.top + vertical * geometry.height;
+    const progress = Math.sqrt(attempt / Math.max(1, MAX_PLACEMENT_ATTEMPTS - 1));
+    const angle = seedAngle + attempt * 2.3999632;
+    const horizontalRadius = Math.max(0, (geometry.width - dimensions.width) / 2);
+    const verticalRadius = Math.max(0, (geometry.height - dimensions.height) / 2);
+    const centerX = geometry.centerX + Math.cos(angle) * progress * horizontalRadius;
+    const centerY = geometry.centerY + Math.sin(angle) * progress * verticalRadius;
     const box = {
       left: centerX - dimensions.width / 2 - 1,
       right: centerX + dimensions.width / 2 + 1,
@@ -170,8 +142,14 @@ function findPosition(word, wordIndex, fontSize, boxes, geometry, measure) {
       bottom: centerY + dimensions.height / 2 + 0.6,
     };
 
-    if (!boxInsideBulb(box, geometry) || boxesCollide(box, boxes)) continue;
-    return { box, x: centerX - dimensions.width / 2, y: centerY - dimensions.height / 2, fontSize };
+    if (!boxInsideCloud(box, geometry) || boxesCollide(box, boxes)) continue;
+    return {
+      box,
+      x: centerX - dimensions.elementWidth / 2,
+      y: centerY - dimensions.elementHeight / 2,
+      fontSize,
+      rotation,
+    };
   }
 
   return null;
@@ -239,35 +217,17 @@ function createLayout(words, geometry, measure) {
 
   // Extrém hosszú kifejezéseknél is ugyanazt a szókészletet tartjuk meg.
   return words.map((word, index) => {
-    const vertical = 0.08 + (index / Math.max(1, words.length - 1)) * 0.84;
-    const horizontalRange = bulbHalfWidth(vertical) * geometry.width * 0.72;
-    const centerX = geometry.centerX + (pseudoRandom(index * 19.37) * 2 - 1) * horizontalRange;
-    const centerY = geometry.top + vertical * geometry.height;
-    const dimensions = measureWord(word, 4, measure);
+    const rotation = getWordRotation(word, index);
+    const dimensions = measureWord(word, 4, measure, rotation);
+    const availableWidth = Math.max(0, geometry.width - dimensions.width);
+    const availableHeight = Math.max(0, geometry.height - dimensions.height);
     return {
-      x: centerX - dimensions.width / 2,
-      y: centerY - dimensions.height / 2,
+      x: geometry.left + pseudoRandom(index * 19.37) * availableWidth + (dimensions.width - dimensions.elementWidth) / 2,
+      y: geometry.top + pseudoRandom(index * 31.73) * availableHeight + (dimensions.height - dimensions.elementHeight) / 2,
       fontSize: 4,
+      rotation,
     };
   });
-}
-
-function appendBulbGuide(geometry, wordCount) {
-  const namespace = "http://www.w3.org/2000/svg";
-  const guide = document.createElementNS(namespace, "svg");
-  guide.classList.add("bulb-guide");
-  guide.setAttribute("viewBox", "0 0 100 132");
-  guide.setAttribute("aria-hidden", "true");
-  guide.style.left = `${geometry.left}px`;
-  guide.style.top = `${geometry.top}px`;
-  guide.style.width = `${geometry.width}px`;
-  guide.style.height = `${geometry.height}px`;
-  guide.style.opacity = wordCount >= 18 ? "0.42" : "1";
-  guide.innerHTML = `
-    <path d="M50 3C24 3 6 21 6 43c0 18 10 27 23 39 5 5 7 10 7 15h28c0-5 2-10 7-15 13-12 23-21 23-39C94 21 76 3 50 3Z" />
-    <path d="M34 96h32v23c0 7-7 11-16 11s-16-4-16-11V96Z" />
-    <path class="bulb-detail" d="M35 105h30M35 113h30M38 121h24" />`;
-  cloudCanvas.append(guide);
 }
 
 function hideWordTooltip() {
@@ -292,6 +252,7 @@ function appendWord(word, placement) {
   element.style.left = `${placement.x}px`;
   element.style.top = `${placement.y}px`;
   element.style.fontSize = `${placement.fontSize}px`;
+  element.style.setProperty("--word-rotation", `${placement.rotation}deg`);
   element.style.color = palette[Math.abs(hashWord(word.text)) % palette.length];
   element.tabIndex = 0;
   element.setAttribute("aria-label", `${word.text}: ${word.count} beküldés`);
@@ -321,11 +282,10 @@ function renderCloud(words) {
   }
 
   const visibleWords = words.slice(0, MAX_VISIBLE_WORDS);
-  const geometry = createBulbGeometry(cloudCanvas.clientWidth, cloudCanvas.clientHeight);
+  const geometry = createCloudGeometry(cloudCanvas.clientWidth, cloudCanvas.clientHeight);
   const measure = document.createElement("canvas").getContext("2d");
   const placements = createLayout(visibleWords, geometry, measure);
 
-  appendBulbGuide(geometry, visibleWords.length);
   if (placements) {
     visibleWords.forEach((word, index) => appendWord(word, placements[index]));
   }
