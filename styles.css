@@ -47,7 +47,8 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .bulb-guide .bulb-detail { fill: none; stroke: rgba(255,212,59,.28); stroke-width: 1; }
 .cloud-word { position: absolute; z-index: 1; display: flex; gap: .25em; align-items: flex-start; white-space: nowrap; overflow: hidden; font-weight: 800; line-height: 1; letter-spacing: -.055em; animation: word-in .45s both; transition: transform .2s,filter .2s; cursor: default; }
 .cloud-word:hover { transform: scale(1.08); filter: brightness(1.17); z-index: 2; }
-.cloud-word small { font-size: .23em; line-height: 1; opacity: .7; letter-spacing: 0; }
+.cloud-word:focus-visible { outline: 2px solid #ffd43b; outline-offset: 2px; z-index: 3; }
+.word-tooltip { position: fixed; z-index: 20; pointer-events: none; padding: .42rem .58rem; border: 1px solid #4f6da9; border-radius: .28rem; background: #f8fafc; color: #071438; box-shadow: 0 8px 24px rgba(0,0,0,.32); font-size: .76rem; font-weight: 800; white-space: nowrap; }
 .empty-cloud { height: 100%; min-height: 360px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #7187b4; gap: .65rem; text-align: center; }
 .empty-cloud .cloud-icon { font-size: 4.5rem; line-height: 1; opacity: .75; }
 .empty-cloud strong { color: #b8c5df; font-size: 1.1rem; }
