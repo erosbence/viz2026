@@ -2,28 +2,6 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /responses/{clientId} {
-      allow read: if true;
-
-      allow create: if
-        !exists(/databases/$(database)/documents/responses/$(clientId)) &&
-        request.resource.data.keys().hasOnly(['words', 'createdAt']) &&
-        request.resource.data.words is list &&
-        request.resource.data.words.size() == 3 &&
-        request.resource.data.words[0] is string &&
-        request.resource.data.words[0].size() >= 2 &&
-        request.resource.data.words[0].size() <= 40 &&
-        request.resource.data.words[1] is string &&
-        request.resource.data.words[1].size() >= 2 &&
-        request.resource.data.words[1].size() <= 40 &&
-        request.resource.data.words[2] is string &&
-        request.resource.data.words[2].size() >= 2 &&
-        request.resource.data.words[2].size() <= 40 &&
-        request.resource.data.createdAt == request.time;
-
-      allow update, delete: if false;
-    }
-
     match /{document=**} {
       allow read, write: if false;
     }
